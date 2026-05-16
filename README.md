@@ -88,6 +88,14 @@ Flags constructors, that do not start with empty
 
 **Options** - same `baseClasses` schema as above.
 
+---
+
+### `simbiat/require-listener-cleanup` - *suggestion*
+
+Verifies that every `addEventListener` call on an external target inside
+`connectedCallback` of an HTMLElement subclass has a matching `removeEventListener` call in `disconnectedCallback`.
+
+**Options** - same `baseClasses` schema as above.
 
 ---
 
