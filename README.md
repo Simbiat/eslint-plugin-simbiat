@@ -27,6 +27,7 @@ export default [
       'simbiat/no-external-listeners-in-constructor': 'warn',
       'simbiat/prefer-field-initializer':             'warn',
       'simbiat/require-type-parameter':               'warn',
+      'simbiat/require-super-first-in-constructor':   'error',
     },
   },
 ];
@@ -41,11 +42,14 @@ export default [
 Flags things the [Custom Elements spec](https://html.spec.whatwg.org/multipage/custom-elements.html#custom-element-conformance)
 forbids in a constructor:
 
-| Category              | Members                                                                                                                                              |
-|-----------------------|------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Attribute creation    | `this.setAttribute()`, `this.toggleAttribute()`                                                                                                      |
-| Child-element access  | `this.children`, `this.childNodes`, `this.firstChild`, `this.lastChild`, `this.firstElementChild`, `this.lastElementChild`, `this.childElementCount` |
-| Child-element queries | `this.querySelector()`, `this.querySelectorAll()`, `this.getElementsByTagName()`, `this.getElementsByClassName()`, `this.getElementsByName()`        |
+| Category               | Members                                                                                                                                                                                                                                                                                                                                                                                       |
+|------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Attribute manipulation | `this.setAttribute()`, `this.toggleAttribute()`, creation/update attributes like `this.id`, `this.className`, `this.tabIndex`, etc., that are not class fields.                                                                                                                                                                                                                               |
+| Child-element access   | `this.children`, `this.childNodes`, `this.firstChild`, `this.lastChild`, `this.firstElementChild`, `this.lastElementChild`, `this.childElementCount`                                                                                                                                                                                                                                          |
+| Child-element queries  | `this.querySelector()`, `this.querySelectorAll()`, `this.getElementsByTagName()`, `this.getElementsByClassName()`, `this.getElementsByName()`                                                                                                                                                                                                                                                 |
+| Content mutation       | `this.innerHTML`, `this.outerHTML`, `this.textContent`, `this.innerText`, `this.appendChild()`, `this.insertBefore`, `this.replaceChild`, `this.removeChild()`, `this.append()`, `this.prepend()`, `this.replaceChildren()`, `this.insertAdjacentHTML()`, `this.insertAdjacentElement()`, `this.insertAdjacentText()`, `this.after()`, `this.before()`, `this.replaceWith()`, `this.remove()` |
+| Global calls           | `document.write()`, `document.open()`                                                                                                                                                                                                                                                                                                                                                         |
+| Illegal return         | Any `return <expr>;` that is not a bare `return;` or `return this;`                                                                                                                                                                                                                                                                                                                           |
 
 Not flagged: `this.shadowRoot.*`, `this.attachShadow()`, `this.getAttribute()`,
 `this.removeAttribute()`, `appendChild` on shadow-root elements, event
@@ -74,6 +78,16 @@ These listeners belong in `connectedCallback`, paired with removal in
 re-inserted into the DOM.
 
 **Options** - same `baseClasses` schema as above.
+
+---
+
+### `simbiat/require-super-first-in-constructor` - *problem*
+
+Flags constructors, that do not start with empty
+`super();`. This is normally flagged by TypeScript but may not be flagged in pure JavaScript.
+
+**Options** - same `baseClasses` schema as above.
+
 
 ---
 

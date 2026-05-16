@@ -9,7 +9,7 @@
     },
     "type": "module",
     "exports": {
-        "default": "./lib/Index.js"
+        "default": "./lib/Plugin.js"
     },
     "files": [
         "lib/"
