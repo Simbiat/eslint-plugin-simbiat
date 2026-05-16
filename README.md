@@ -123,7 +123,7 @@ field declaration simultaneously.
 
 ### `simbiat/require-type-parameter` - *suggestion*
 
-Flags `querySelector` and `querySelectorAll` calls in TypeScript (`.ts` /
+Flags `querySelector`, `querySelectorAll` and `closest` calls in TypeScript (`.ts` /
 `.tsx`) files that lack a type parameter.
 
 ```ts
