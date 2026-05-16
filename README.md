@@ -40,7 +40,7 @@ export default [
 ### `simbiat/no-forbidden-in-constructor` - *problem*
 
 Flags things the [Custom Elements spec](https://html.spec.whatwg.org/multipage/custom-elements.html#custom-element-conformance)
-forbids in a constructor:
+forbids in a constructor and in class field definitions:
 
 | Category               | Members                                                                                                                                                                                                                                                                                                                                                                                       |
 |------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
