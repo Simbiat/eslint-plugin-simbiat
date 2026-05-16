@@ -1,7 +1,7 @@
 {
     "name": "eslint-plugin-simbiat",
     "version": "1.0.0",
-    "description": "Custom ESLint rules for used in simbiat.eu project: class-field initializers, custom-element constructor constraints, and typed querySelector.",
+    "description": "Custom ESLint rules used in simbiat.eu project: class-field initializers, custom-element constructor constraints, and typed querySelector.",
     "author": {
         "name": "Dmitrii Kustov",
         "email": "upport@simbiat.eu",
