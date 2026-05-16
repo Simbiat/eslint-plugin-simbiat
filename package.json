@@ -28,5 +28,12 @@
         "typescript",
         "class-fields"
     ],
-    "license": "MIT"
+    "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/simbiat/eslint-plugin-simbiat.git"
+    },
+    "bugs": {
+        "url": "https://github.com/simbiat/eslint-plugin-simbiat/issues"
+    }
 }
