@@ -27,7 +27,8 @@ export default [
       'simbiat/no-external-listeners-in-constructor': 'warn',
       'simbiat/prefer-field-initializer':             'warn',
       'simbiat/require-type-parameter':               'warn',
-      'simbiat/require-super-first-in-constructor':   'error',
+      'simbiat/require-super-first-in-constructor':   'error', 
+      'simbiat/no-keypress-event':                    'warn',
     },
   },
 ];
@@ -136,3 +137,9 @@ const element = document.querySelector<HTMLAnchorElement>('.link');
 
 JS files are left alone. No auto-fix: the correct type depends on the
 selector and must be supplied by the developer.
+
+---
+
+### `simbiat/no-keypress-event` - *suggestion*
+
+Flags use of `keypress` event, since it is deprectaed, and `keydown` is recommended as replacement (or `beforeinput` in some cases). Provides autofix except for `removeEventListener`, because these require a complete match, and if the listener being removed is third party, it will not work as expected. Thus manual intervention is recommended here.
