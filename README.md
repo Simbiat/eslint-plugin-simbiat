@@ -94,7 +94,7 @@ Flags constructors, that do not start with empty
 ### `simbiat/require-listener-cleanup` - *suggestion*
 
 Verifies that every `addEventListener` call on an external target inside
-`connectedCallback` of an HTMLElement subclass has a matching `removeEventListener` call in `disconnectedCallback`.
+`connectedCallback` of an HTMLElement subclass has a matching `removeEventListener` call in `disconnectedCallback`. If the handler in `addEventListener` is a proper class field already, it can be auto-fixed (respective `removeEventListener` will be added).
 
 **Options** - same `baseClasses` schema as above.
 
