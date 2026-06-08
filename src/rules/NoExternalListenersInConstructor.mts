@@ -1,7 +1,5 @@
-// @ts-check
-
 /**
- * Rule: simbiat/no-external-listeners-in-constructor
+ * @file Rule: simbiat/no-external-listeners-in-constructor.
  *
  * Flags `addEventListener` calls on `document`, `window`, `document.body`,
  * `document.documentElement`, or `document.head` that appear *directly* in
@@ -13,25 +11,56 @@
  * re-inserted into the DOM.
  *
  * Options:
- *   baseClasses: string[] – additional class names to treat as HTMLElement.
- *                            Defaults to ['HTMLElement'].
+ * baseClasses: string[] – additional class names to treat as HTMLElement. Defaults to ['HTMLElement'].
  */
 
-import { adaptNodeHandler } from '../utils/Adapters.js';
-import { isExternalTarget, targetName } from '../utils/ASTHelpers.js';
+import type { Rule } from 'eslint';
+import { adaptNodeHandler } from '../utils/Adapters.mjs';
+import { isExternalTarget, targetName } from '../utils/ASTHelpers.mjs';
 import {
   isActiveScope,
   buildScopeVisitors,
   baseClassesSchema,
-} from '../utils/CustomElementsScope.js';
+  type ScopeState,
+} from '../utils/CustomElementsScope.mjs';
+
+// Types
+
+/** Rule options shape for the baseClasses option. */
+interface RuleOptions {
+  readonly baseClasses?: readonly string[]
+}
+
+/** Extended state including the ESLint rule context. */
+interface RuleState extends ScopeState {
+  readonly context: Rule.RuleContext
+}
+
+/** Minimal shape of a CallExpression node as used by this rule. */
+interface CallExpressionNode {
+  readonly callee: {
+    readonly type: string
+    readonly property: {
+      readonly type: string
+      readonly name: string
+    }
+    readonly object: unknown
+  }
+}
 
 // Visitor handler
 
-function onCallExpression(state, node) {
+/**
+ * Reports `addEventListener` calls on external targets found directly in the constructor.
+ * @param state - Rule state including ESLint context and scope stack.
+ * @param node - CallExpression node to inspect (as unknown from ESLint).
+ */
+function onCallExpression(state: RuleState, node: unknown): void {
   if (!isActiveScope(state)) {
     return;
   }
-  const { callee } = node;
+  const call = node as CallExpressionNode;
+  const { callee } = call;
   if (callee.type !== 'MemberExpression') {
     return;
   }
@@ -46,7 +75,7 @@ function onCallExpression(state, node) {
   }
 
   state.context.report({
-    node,
+    node: node as Rule.Node,
     messageId: 'externalListener',
     data: { target: targetName(callee.object) },
   });
@@ -54,7 +83,7 @@ function onCallExpression(state, node) {
 
 // Rule definition
 
-const noExternalListenersInConstructor = {
+const noExternalListenersInConstructor: Rule.RuleModule = {
   meta: {
     type: 'suggestion',
     docs: {
@@ -68,16 +97,19 @@ const noExternalListenersInConstructor = {
         + 'otherwise listeners will be lost if the element is moved or re-inserted.',
     },
     schema: baseClassesSchema,
-    fixable: null,
     hasSuggestions: false,
   },
 
-  // noinspection JSUnusedGlobalSymbols
-  create(context) {
-    const state = {
+  /**
+   * Create rule.
+   * @param context - Contect to process.
+   */
+  create(context: Rule.RuleContext): Rule.RuleListener {
+    const options = context.options[0] as RuleOptions | undefined;
+    const state: RuleState = {
       context,
       stack: [],
-      base_classes: context.options[0]?.baseClasses ?? ['HTMLElement'],
+      base_classes: options?.baseClasses ?? ['HTMLElement'],
     };
 
     return {

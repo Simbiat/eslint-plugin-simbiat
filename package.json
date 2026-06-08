@@ -1,5 +1,5 @@
 {
-    "name": "eslint-plugin-simbiat",
+    "name": "@simbiat/eslint-plugin-simbiat",
     "version": "1.0.0",
     "description": "Custom ESLint rules used in simbiat.eu project: class-field initializers, custom-element constructor constraints, and typed querySelector.",
     "author": {
@@ -9,10 +9,18 @@
     },
     "type": "module",
     "exports": {
-        "default": "./lib/Plugin.js"
+        ".": {
+            "default": "./dist/Plugin.mjs",
+            "import": "./dist/Plugin.mjs",
+            "types": "./dist/Plugin.d.mts"
+        },
+        "./package.json": "./package.json"
     },
     "files": [
-        "lib/"
+        "dist",
+        "LICENSE",
+        "package.json",
+        "README.md"
     ],
     "engines": {
         "node": "^20.10.0 || >=21.0.0"
@@ -35,5 +43,8 @@
     },
     "bugs": {
         "url": "https://github.com/simbiat/eslint-plugin-simbiat/issues"
+    },
+    "scripts": {
+        "prepare": "tsc"
     }
 }

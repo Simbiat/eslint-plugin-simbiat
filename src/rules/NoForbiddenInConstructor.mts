@@ -1,78 +1,83 @@
-// @ts-check
-
 /**
- * Rule: simbiat/no-forbidden-in-constructor
+ * @file Rule: simbiat/no-forbidden-in-constructor.
  *
  * Flags everything the Custom Elements spec says you cannot or should not do
  * during the construction phase — both in the constructor body and in instance
  * field initializers (which run as part of construction, before the element
  * is connected).
  *
- * Attribute / property writes
- *   Any `this.x = value` assignment where `x` is not declared as a class
- *   field (PropertyDefinition) in the current class body is flagged.
+ * Attribute / property writes: any `this.x = value` assignment where `x` is not declared as a class field (PropertyDefinition) in the current class body is flagged.
  *
- *   This intentionally covers all reflected HTML content attributes
- *   (id, className, title, tabIndex, dir, lang, hidden, draggable, …),
- *   all ARIA IDL attributes (ariaLabel, ariaHidden, ariaRole, …),
- *   all per-element IDL attributes (href, src, value, type, …),
- *   all event-handler properties (onclick, oninput, …), etc.
- *   without requiring a static list.
+ * DOMTokenList mutation: this.classList.add / remove / toggle / replace (…), this.part.add / remove / toggle / replace (…)
  *
- *   Well-known content-modifying properties (innerHTML, outerHTML,
- *   textContent, innerText) are reported with a more specific message.
+ * Chained attribute / style writes: this.dataset.<key> = value / this.style.<prop> = value
  *
- * DOMTokenList mutation
- *   • this.classList.add / remove / toggle / replace (…)
- *   • this.part.add / remove / toggle / replace (…)
- *     - these modify reflected attribute values via a DOMTokenList proxy
+ * Method-based attribute manipulation: this.setAttribute(…) / this.toggleAttribute(…)
  *
- * Chained attribute / style writes
- *   • this.dataset.<key> = value - sets a data-* attribute
- *   • this.style.<prop> = value - sets an inline CSS property
+ * Child / content access (reads and mutations via children-related properties
+ * and methods such as querySelector, appendChild, innerHTML, etc.)
  *
- * Method-based attribute manipulation
- *   • this.setAttribute(…) / this.toggleAttribute(…)
+ * Forbidden global calls: document.write(…) / document.open(…)
  *
- * Child / content access
- *   (read) this.children / childNodes / firstChild / lastChild /
- *          firstElementChild / lastElementChild / childElementCount
- *   (call) this.querySelector / querySelectorAll / getElementsByTagName /
- *          getElementsByClassName / getElementsByName /
- *          appendChild / insertBefore / replaceChild / removeChild /
- *          append / prepend / replaceChildren /
- *          insertAdjacentHTML / insertAdjacentElement / insertAdjacentText /
- *          after / before / replaceWith / remove
+ * Illegal return (constructor only): any `return <expr>` that is not a bare `return` or `return this`.
  *
- * Forbidden global calls
- *   • document.write(…) / document.open(…)
- *
- * Illegal return (constructor only)
- *   • Any `return <expr>` that is not a bare `return` or `return this`
- *   (A bare return inside a field initializer is a syntax error; nested
- *   function returns are suppressed by the 'fn' scope marker.)
- *
- * Not flagged: this.shadowRoot.*, this.attachShadow(), this.getAttribute(),
- * this.removeAttribute(), appending to shadow-root elements, shadow-scoped
- * event listeners.
- *
- * Nested functions and arrow functions are skipped in all cases.
- * Static field initializers are skipped (they run at class definition time,
- * not at element construction time).
- *
- * Options:
- *   baseClasses: string[] - additional class names to treat as HTMLElement.
- *                            Defaults to ['HTMLElement'].
+ * Options: baseClasses: string[] – additional class names to treat as HTMLElement. Defaults to ['HTMLElement'].
  */
 
-import { adaptNodeHandler } from '../utils/adapters.js';
+import type { Rule } from 'eslint';
+import { adaptNodeHandler } from '../utils/Adapters.mjs';
 import {
   isActiveScope,
   getActiveScopeLocation,
   getClassFieldNames,
   buildScopeVisitors,
   baseClassesSchema,
-} from '../utils/CustomElementsScope.js';
+  type ScopeState,
+} from '../utils/CustomElementsScope.mjs';
+
+// Types
+
+/** Rule options shape for the baseClasses option. */
+interface RuleOptions {
+  readonly baseClasses?: readonly string[]
+}
+
+/** Extended state including the ESLint rule context. */
+interface RuleState extends ScopeState {
+  readonly context: Rule.RuleContext
+}
+
+/** Minimal MemberExpression node shape. */
+interface MemberNode {
+  readonly type: string
+  readonly object: {
+    readonly type: string
+    readonly name?: string
+  }
+  readonly property: {
+    readonly type: string
+    readonly name: string
+  }
+  readonly computed: boolean
+}
+
+/** Minimal AssignmentExpression node shape. */
+interface AssignmentNode {
+  readonly operator: string
+  readonly left: MemberNode & { readonly object: MemberNode & { readonly type: string } }
+}
+
+/** Minimal ReturnStatement node shape. */
+interface ReturnNode {
+  readonly argument: { readonly type: string } | null
+}
+
+/** Minimal CallExpression node shape. */
+interface CallNode {
+  readonly callee: MemberNode & {
+    readonly object: MemberNode & { readonly type: string }
+  }
+}
 
 // Static member sets
 
@@ -140,18 +145,14 @@ const FORBIDDEN_CONTENT_PROP_WRITES = new Set([
   'innerText',
 ]);
 
-/**
- * DOMTokenList-typed properties whose mutating methods set reflected attrs.
- */
+/** DOMTokenList-typed properties whose mutating methods set reflected attrs. */
 const TOKEN_LIST_PROPS = new Set(['classList', 'part']);
 
 /** Mutating methods on DOMTokenList instances. */
 const TOKEN_LIST_MUTATING_METHODS = new Set(['add', 'remove', 'toggle', 'replace']);
 
 /**
- * Properties whose subproperties correspond to HTML attributes or CSS:
- *   dataset → data-* attributes
- *   style → inline CSS properties
+ * Properties whose subproperties correspond to HTML attributes or CSS: dataset → data-* attributes / style → inline CSS properties.
  */
 const CHAINED_WRITE_PROPS = new Set(['dataset', 'style']);
 
@@ -160,11 +161,17 @@ const FORBIDDEN_DOCUMENT_METHODS = new Set(['write', 'open']);
 
 // Visitor handlers
 
-function onCallExpression(state, node) {
+/**
+ * Reports forbidden method calls on `this`, DOMTokenList members, or document.
+ * @param state - Rule state including ESLint context and scope stack.
+ * @param node - CallExpression node to inspect (as unknown from ESLint).
+ */
+function onCallExpression(state: RuleState, node: unknown): void {
   if (!isActiveScope(state)) {
     return;
   }
-  const { callee } = node;
+  const call = node as CallNode;
+  const { callee } = call;
   if (callee.type !== 'MemberExpression') {
     return;
   }
@@ -177,7 +184,7 @@ function onCallExpression(state, node) {
     const method = callee.property.name;
     if (FORBIDDEN_ATTR_METHODS.has(method)) {
       state.context.report({
-        node,
+        node: node as Rule.Node,
         messageId: 'attrMethod',
         data: {
           method,
@@ -186,7 +193,7 @@ function onCallExpression(state, node) {
       });
     } else if (FORBIDDEN_CHILD_METHODS.has(method)) {
       state.context.report({
-        node,
+        node: node as Rule.Node,
         messageId: 'childMethod',
         data: {
           method,
@@ -207,7 +214,7 @@ function onCallExpression(state, node) {
     && TOKEN_LIST_MUTATING_METHODS.has(callee.property.name)
   ) {
     state.context.report({
-      node,
+      node: node as Rule.Node,
       messageId: 'tokenListMutation',
       data: {
         prop: callee.object.property.name,
@@ -225,7 +232,7 @@ function onCallExpression(state, node) {
     && FORBIDDEN_DOCUMENT_METHODS.has(callee.property.name)
   ) {
     state.context.report({
-      node,
+      node: node as Rule.Node,
       messageId: 'documentMethod',
       data: {
         method: callee.property.name,
@@ -235,26 +242,31 @@ function onCallExpression(state, node) {
   }
 }
 
-/** Flags reads of forbidden own-child properties. */
-function onMemberExpression(state, node) {
+/**
+ * Flags reads of forbidden own-child properties on `this`.
+ * @param state - Rule state including ESLint context and scope stack.
+ * @param node - MemberExpression node to inspect (as unknown from ESLint).
+ */
+function onMemberExpression(state: RuleState, node: unknown): void {
   if (!isActiveScope(state)) {
     return;
   }
+  const mem = node as MemberNode;
   // Only flag `this.prop` - not `this.shadowRoot.prop` etc.
-  if (node.object.type !== 'ThisExpression') {
+  if (mem.object.type !== 'ThisExpression') {
     return;
   }
-  if (node.property.type !== 'Identifier') {
+  if (mem.property.type !== 'Identifier') {
     return;
   }
-  if (node.computed) {
+  if (mem.computed) {
     return; // skip this['children'] - unusual enough to ignore
   }
 
-  const prop = node.property.name;
+  const prop = mem.property.name;
   if (FORBIDDEN_CHILD_PROPS.has(prop)) {
     state.context.report({
-      node,
+      node: node as Rule.Node,
       messageId: 'childProp',
       data: {
         prop,
@@ -266,28 +278,22 @@ function onMemberExpression(state, node) {
 
 /**
  * Flags three categories of write during construction:
- *
- *   1. this.<contentProp> = … e.g., this.innerHTML = '<div>'
- *      → contentPropWrite message
- *
- *   2. `this.<anything>` = … where <anything> is not a declared class field
- *      → undeclaredPropWrite message
- *      Covers every reflected HTML attribute, ARIA IDL property, per-element
- *      attribute, event-handler property, and any other undeclared property.
- *
- *   3. this.dataset.<key> = … / this.style.<prop> = …
- *      → chainedPropWrite message
- *
+ * 1. This.<contentProp> = … e.g., this.innerHTML = '<div>'
+ * 2. `this.<anything>` = … where <anything> is not a declared class field
+ * 3. This.dataset.<key> = … / this.style.<prop> = ….
  * Only simple `=` assignments; compound operators (+=, |=, …) are left alone.
+ * @param state - Rule state including ESLint context and scope stack.
+ * @param node - AssignmentExpression node to inspect (as unknown from ESLint).
  */
-function onAssignmentExpression(state, node) {
+function onAssignmentExpression(state: RuleState, node: unknown): void {
   if (!isActiveScope(state)) {
     return;
   }
-  if (node.operator !== '=') {
+  const assign = node as AssignmentNode;
+  if (assign.operator !== '=') {
     return;
   }
-  const { left } = node;
+  const { left } = assign;
   if (left.type !== 'MemberExpression') {
     return;
   }
@@ -303,7 +309,7 @@ function onAssignmentExpression(state, node) {
 
     if (FORBIDDEN_CONTENT_PROP_WRITES.has(prop)) {
       state.context.report({
-        node,
+        node: node as Rule.Node,
         messageId: 'contentPropWrite',
         data: {
           prop,
@@ -323,7 +329,7 @@ function onAssignmentExpression(state, node) {
     if (!getClassFieldNames(state)
       .has(prop)) {
       state.context.report({
-        node,
+        node: node as Rule.Node,
         messageId: 'undeclaredPropWrite',
         data: {
           prop,
@@ -343,7 +349,7 @@ function onAssignmentExpression(state, node) {
     && CHAINED_WRITE_PROPS.has(left.object.property.name)
   ) {
     state.context.report({
-      node,
+      node: node as Rule.Node,
       messageId: 'chainedPropWrite',
       data: {
         prop: left.object.property.name,
@@ -358,32 +364,30 @@ function onAssignmentExpression(state, node) {
  * absent (`return;`) or is exactly `this` (`return this;`).
  *
  * Per spec: "A return statement must not appear anywhere inside the
- * constructor body, unless it is a simple early-return (return or return this)."
- *
- * This handler naturally only fires for constructor scope: a bare `return`
- * in a field initializer is a syntax error, and nested function returns are
- * suppressed by the 'fn' scope marker.
+ * constructor body, unless it is a simple early-return (return or return this)".
+ * @param state - Rule state including ESLint context and scope stack.
+ * @param node - ReturnStatement node to inspect (as unknown from ESLint).
  */
-function onReturnStatement(state, node) {
+function onReturnStatement(state: RuleState, node: unknown): void {
   if (!isActiveScope(state)) {
     return;
   }
-  const { argument } = node;
-  if (argument === null) {
+  const ret = node as ReturnNode;
+  if (ret.argument === null) {
     return; // bare `return;` is fine
   }
-  if (argument.type === 'ThisExpression') {
+  if (ret.argument?.type === 'ThisExpression') {
     return; // `return this;` is fine
   }
   state.context.report({
-    node,
+    node: node as Rule.Node,
     messageId: 'illegalReturn',
   });
 }
 
 // Rule definition
 
-const noForbiddenInConstructor = {
+const noForbiddenInConstructor: Rule.RuleModule = {
   meta: {
     type: 'problem',
     docs: {
@@ -414,16 +418,19 @@ const noForbiddenInConstructor = {
         'The constructor must not return a value other than undefined or this.',
     },
     schema: baseClassesSchema,
-    fixable: null,
     hasSuggestions: false,
   },
 
-  // noinspection JSUnusedGlobalSymbols
-  create(context) {
-    const state = {
+  /**
+   * Creates rule.
+   * @param context - Context to process.
+   */
+  create(context: Rule.RuleContext): Rule.RuleListener {
+    const options = context.options[0] as RuleOptions | undefined;
+    const state: RuleState = {
       context,
       stack: [],
-      base_classes: context.options[0]?.baseClasses ?? ['HTMLElement'],
+      base_classes: options?.baseClasses ?? ['HTMLElement'],
     };
 
     return {

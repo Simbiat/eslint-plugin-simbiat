@@ -5,7 +5,7 @@ Custom ESLint rules that are used in the [simbiat.eu](https://github.com/Simbiat
 ## Installation
 
 ```bash
-npm install --save-dev eslint-plugin-simbiat
+npm install --save-dev @simbiat/eslint-plugin-simbiat
 ```
 
 Requires ESLint
@@ -17,7 +17,7 @@ Requires ESLint
 
 ```js
 // eslint.config.js
-import simbiat from 'eslint-plugin-simbiat';
+import simbiat from '@simbiat/eslint-plugin-simbiat';
 
 export default [
   {
@@ -142,4 +142,4 @@ selector and must be supplied by the developer.
 
 ### `simbiat/no-keypress-event` - *suggestion*
 
-Flags use of `keypress` event, since it is deprectaed, and `keydown` is recommended as replacement (or `beforeinput` in some cases). Provides autofix except for `removeEventListener`, because these require a complete match, and if the listener being removed is third party, it will not work as expected. Thus manual intervention is recommended here.
+Flags use of `keypress` event, since it is deprecated, and `keydown` is recommended as replacement (or `beforeinput` in some cases). Provides autofix except for `removeEventListener`, because these require a complete match, and if the listener being removed is third party, it will not work as expected. Thus, manual intervention is recommended here.

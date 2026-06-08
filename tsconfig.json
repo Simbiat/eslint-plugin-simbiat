@@ -1,0 +1,44 @@
+{
+    "compilerOptions": {
+        //Type checking
+        "strict": true,
+        "skipLibCheck": true,
+        "allowUnreachableCode": false,
+        "allowUnusedLabels": false,
+        "exactOptionalPropertyTypes": true,
+        "noFallthroughCasesInSwitch": true,
+        "noImplicitOverride": true,
+        "noImplicitReturns": true,
+        "noPropertyAccessFromIndexSignature": true,
+        "noUncheckedIndexedAccess": true,
+        "noUnusedLocals": true,
+        "noUnusedParameters": true,
+        "esModuleInterop": true,
+        "forceConsistentCasingInFileNames": true,
+        "isolatedModules": false,
+        //Compiler options
+        "module": "nodenext",
+        "target": "esnext",
+        "moduleResolution": "nodenext",
+        "moduleDetection": "force",
+        "jsx": "react-jsx",
+        "verbatimModuleSyntax": true,
+        "declaration": true,
+        "rootDir": "./src",
+        "outDir": "./dist",
+        "paths": {
+            "@/*": [
+                "./*"
+            ]
+        }
+    },
+    "include": [
+        "./src/*.mts",
+        "./src/*/*.mts"
+    ],
+    "exclude": [
+        "node_modules",
+        "dist",
+        "coverage"
+    ]
+}
