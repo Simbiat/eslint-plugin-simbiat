@@ -1,12 +1,29 @@
 {
     "name": "@simbiat/eslint-plugin-simbiat",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "description": "Custom ESLint rules used in simbiat.eu project: class-field initializers, custom-element constructor constraints, and typed querySelector.",
+    "keywords": [
+        "eslint",
+        "eslintplugin ",
+        "eslint-plugin",
+        "custom-elements",
+        "typescript",
+        "class-fields"
+    ],
+    "bugs": {
+        "url": "https://github.com/simbiat/eslint-plugin-simbiat/issues"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/simbiat/eslint-plugin-simbiat.git"
+    },
+    "license": "MIT",
     "author": {
         "name": "Dmitrii Kustov",
         "email": "upport@simbiat.eu",
         "url": "https://www.simbiat.eu"
     },
+    "sideEffects": false,
     "type": "module",
     "exports": {
         ".": {
@@ -17,34 +34,18 @@
         "./package.json": "./package.json"
     },
     "files": [
-        "dist",
-        "LICENSE",
-        "package.json",
-        "README.md"
+        "dist"
     ],
-    "engines": {
-        "node": "^20.10.0 || >=21.0.0"
+    "scripts": {
+        "prepare": "tsc"
+    },
+    "devDependencies": {
+        "eslint": ">=9.38.0"
     },
     "peerDependencies": {
         "eslint": ">=9.38.0"
     },
-    "keywords": [
-        "eslint",
-        "eslintplugin ",
-        "eslint-plugin",
-        "custom-elements",
-        "typescript",
-        "class-fields"
-    ],
-    "license": "MIT",
-    "repository": {
-        "type": "git",
-        "url": "git+https://github.com/simbiat/eslint-plugin-simbiat.git"
-    },
-    "bugs": {
-        "url": "https://github.com/simbiat/eslint-plugin-simbiat/issues"
-    },
-    "scripts": {
-        "prepare": "tsc"
+    "engines": {
+        "node": "^20.10.0 || >=21.0.0"
     }
 }
